@@ -6,6 +6,7 @@ import logging
 import json
 from pathlib import Path
 import winreg
+import sys
 
 # Optional: requires 'ttkthemes' package (pip install ttkthemes)
 try:
@@ -13,6 +14,13 @@ try:
     has_ttkthemes = True
 except ImportError:
     has_ttkthemes = False
+
+# Optional: requires 'tkinterdnd2' package (pip install tkinterdnd2)
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+    has_dnd = True
+except ImportError:
+    has_dnd = False
 
 # Logging setup
 tk_logger = logging.getLogger('BatchRenamer')
@@ -57,7 +65,6 @@ class BatchRenamer:
             style.set_theme(theme)
         else:
             style = ttk.Style(master)
-            # fallback to native
             for t in ('vista','winnative'):
                 if t in style.theme_names():
                     style.theme_use(t)
@@ -76,11 +83,17 @@ class BatchRenamer:
         self.lbl_folder = ttk.Label(main, text="No folder selected")
         self.lbl_folder.grid(row=0, column=1, sticky=tk.W, padx=5)
 
+        # Treeview for file list
         self.tree = ttk.Treeview(main, columns=("file",), show='headings', height=12)
         self.tree.heading("file", text="File Name")
         self.tree.grid(row=1, column=0, columnspan=2, sticky=tk.NSEW, pady=(5,10))
         main.columnconfigure(1, weight=1)
         main.rowconfigure(1, weight=1)
+
+        # Enable drag and drop if available
+        if has_dnd:
+            self.tree.drop_target_register(DND_FILES)
+            self.tree.dnd_bind('<<Drop>>', self._on_drop)
 
         btn_rename = ttk.Button(main, text="Rename Files", command=self._start_rename_thread)
         btn_rename.grid(row=2, column=0, columnspan=2)
@@ -89,13 +102,18 @@ class BatchRenamer:
         folder = filedialog.askdirectory()
         if not folder:
             return
+        self._load_files_from_folder(folder)
+
+    def _load_files_from_folder(self, folder):
         exts = {'.mp4','.mkv','.avi','.mov','.flv','.wmv','.m4v'}
-        files = sorted([f for f in os.listdir(folder)
-                        if os.path.isfile(os.path.join(folder,f))
-                        and os.path.splitext(f)[1].lower() in exts])
+        files = sorted([
+            f for f in os.listdir(folder)
+            if not f.startswith('.')  # skip hidden files
+            and os.path.isfile(os.path.join(folder, f))
+            and os.path.splitext(f)[1].lower() in exts
+        ])
         if not files:
-            messagebox.showwarning("No Media Files",
-                                   "No media files found in folder.")
+            messagebox.showwarning("No Media Files", "No media files found in folder.")
             return
         self.folder = folder
         self.files = files
@@ -105,9 +123,24 @@ class BatchRenamer:
         for f in files:
             self.tree.insert('', tk.END, values=(f,))
 
+    def _on_drop(self, event):
+        data = self.master.splitlist(event.data)
+        files = []
+        for path in data:
+            if os.path.isdir(path):
+                for f in os.listdir(path):
+                    full = os.path.join(path, f)
+                    if os.path.isfile(full):
+                        files.append((path, f))
+            else:
+                dirpath, f = os.path.split(path)
+                files.append((dirpath, f))
+        if files:
+            self._load_files_from_folder(files[0][0])
+
     def _start_rename_thread(self):
         if not self.files:
-            messagebox.showwarning("No Files", "Please select a folder first.")
+            messagebox.showwarning("No Files", "Please select or drop files first.")
             return
         details = self._prompt_details()
         if details is None:
@@ -176,17 +209,27 @@ class BatchRenamer:
             new = f"{details['title']} ({details['year']}) - S{details['season']:02d}E{ep:02d}{ext}"
             try:
                 os.rename(os.path.join(self.folder, old), os.path.join(self.folder, new))
-                ep+=1
+                ep += 1
             except Exception as e:
                 errs.append(f"{old}: {e}")
-        try: os.startfile(self.folder)
-        except: pass
+        try:
+            if os.name == 'nt':
+                os.startfile(self.folder)
+            elif sys.platform == 'darwin':
+                os.system(f'open "{self.folder}"')
+            else:
+                os.system(f'xdg-open "{self.folder}"')
+        except:
+            pass
         if errs:
             messagebox.showwarning("Errors", "\n".join(errs))
         else:
             messagebox.showinfo("Done", "Renamed and opened folder!")
 
-if __name__=='__main__':
-    root=tk.Tk()
+if __name__ == '__main__':
+    if has_dnd:
+        root = TkinterDnD.Tk()
+    else:
+        root = tk.Tk()
     BatchRenamer(root)
     root.mainloop()
