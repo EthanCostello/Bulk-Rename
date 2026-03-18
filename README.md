@@ -7,31 +7,33 @@ A simple, self-contained Python desktop application for batch renaming video fil
 Batch File Renamer provides an intuitive graphical interface to:
 
 * **Browse & select** a folder containing your media files (MP4, MKV, AVI, MOV, FLV, WMV, M4V).
-
 * **Auto-detect** only supported video formats, filtering out other files.
-
-* **Prompt** for show details—Show Title, Release Year, Start Season & Episode—with dropdown history of previous inputs.
-
+* **Prompt** for show details — Show Title, Release Year, Start Season & Episode — with dropdown history of previous inputs.
+* **Preview** the full before/after list of renames before committing.
 * **Sequentially rename** all files to the format:
 
   ```text
   <Show Title> (YYYY) - SXXEYY.ext
   ```
 
-* **Open the target folder** automatically upon completion.
+* **Roll back** automatically if a partial failure occurs mid-batch.
+* **Open the target folder** automatically upon successful completion.
+* **Follow your Windows theme** (light/dark) using native or `ttkthemes` styling.
 
-* **Follow your Windows theme** (light/dark) using native or `ttkthemes` for consistent UI.
-
-All operations run on a background thread to keep the interface responsive, with detailed debug logging for troubleshooting.
+All rename operations run on a background thread to keep the interface responsive, with a live progress bar and detailed debug logging.
 
 ## Features
 
 * **Media-only file listing** prevents accidental renames of non-video files.
+* **Rename preview dialog** shows every old → new mapping before any file is touched.
+* **Rollback on partial failure** — if any rename fails mid-batch, you are offered the option to undo all completed renames.
+* **Input validation** — title, year (must be 4 digits), season, and episode are all validated before proceeding.
 * **Input history** up to 20 entries per field for quick autofill.
+* **Progress bar** with per-file status updates; Rename button is disabled during operation to prevent concurrent runs.
 * **Cross-platform compatibility** (Windows, macOS, Linux) with native theming where available.
-
   * On Windows, detects system dark mode via registry and applies a dark theme if `ttkthemes` is installed.
-* **Error feedback** via pop-up dialogs for missing folder, partial rename failures, or user cancellations.
+* **Drag-and-drop support** (optional, requires `tkinterdnd2`).
+* **Error feedback** via pop-up dialogs with user-friendly messages.
 
 ## Installation
 
@@ -41,24 +43,23 @@ All operations run on a background thread to keep the interface responsive, with
    git clone https://github.com/EthanCostello/batch-file-renamer.git
    cd batch-file-renamer
    ```
+
 2. **Create a virtual environment (optional but recommended):**
 
    ```bash
    python -m venv venv
    source venv/bin/activate   # macOS/Linux
-   venv\\Scripts\\activate  # Windows
+   venv\Scripts\activate      # Windows
    ```
-3. **Install dependencies:**
+
+3. **Install optional dependencies** (core app requires only the Python standard library):
 
    ```bash
-   pip install -r requirements.txt
+   pip install ttkthemes    # Enhanced dark/light theme support
+   pip install tkinterdnd2  # Drag-and-drop folder support
    ```
 
-   * **Optional:** install `ttkthemes` for enhanced dark mode support:
-
-     ```bash
-     pip install ttkthemes
-     ```
+   > `tkinter` is included with standard Python distributions and does not need a separate install.
 
 ## Usage
 
@@ -68,34 +69,35 @@ Run the application:
 python batch_rename_tv.py
 ```
 
-1. Click **Select Folder** and choose your video directory.
+1. Click **Select Folder** (or drag a folder onto the file list) to choose your video directory.
 2. Click **Rename Files**.
-3. In the dialog, confirm or edit the Show Title, Year, Season, and starting Episode (auto-filled from history).
-4. Click **OK** to begin renaming.
-5. Upon completion, the folder will open automatically.
-
-## Screenshots
-
-![Folder Selection and File List](screenshots/folder_list.png)
-*Figure: Only video files are listed.*
-
-![Rename Details Dialog](screenshots/details_dialog.png)
-*Figure: Enter show details with history dropdowns.*
+3. In the dialog, fill in Show Title, Year, Start Season, and Start Episode (auto-filled from history).
+4. Click **OK** to see a preview of all renames.
+5. In the preview dialog, click **Rename** to commit or **Cancel** to go back.
+6. Upon completion the folder opens automatically, or you are offered a rollback if any errors occurred.
 
 ## Configuration
 
-* **History File:** `~/.batch_renamer_history.json` stores the last 20 inputs per field.
-* **Supported Extensions:** Modify the `MEDIA_EXTS` set in the script to add/remove file types.
+* **Supported Extensions:** Edit the `MEDIA_EXTS` set near the top of `batch_rename_tv.py` to add or remove video formats.
+* **History File:** `~/.batch_renamer_history.json` stores the last 20 inputs per field (excluded from version control via `.gitignore`).
+* **History Limit:** Adjust `MAX_HISTORY` in `batch_rename_tv.py` to change how many entries are remembered.
+
+## Running Tests
+
+```bash
+pip install pytest
+python -m pytest tests/ -v
+```
 
 ## Cross-platform Support
 
 Batch File Renamer is written in pure Python with Tkinter/ttk, so it runs on **Windows, macOS, and Linux**.
 
-* On **Windows**, the program uses `os.startfile` to open the folder.
-* On **macOS**, it falls back to running `open <folder>` to reveal the files in Finder.
-* On **Linux**, it uses `xdg-open <folder>` to open the default file manager.
+* On **Windows**, uses `os.startfile` to open the folder.
+* On **macOS**, runs `open <folder>` via subprocess to reveal files in Finder.
+* On **Linux**, uses `xdg-open <folder>` to open the default file manager.
 
-If you encounter any platform-specific issues (e.g., folder not opening automatically), you can modify the `_rename` method in the script to suit your environment.
+Folder-open commands use `subprocess.run` with argument lists (not shell strings) to avoid shell injection issues.
 
 ## License
 

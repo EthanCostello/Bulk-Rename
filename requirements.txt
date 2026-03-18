@@ -1,0 +1,12 @@
+# Batch File Renamer — Dependencies
+#
+# Required:
+#   tkinter — included with standard Python installations (no pip install needed)
+#
+# Optional — install to enable additional features:
+#   pip install ttkthemes    # Enhanced dark/light theme support
+#   pip install tkinterdnd2  # Drag-and-drop folder support
+#
+# Uncomment the lines below to install optional packages via pip install -r requirements.txt:
+# ttkthemes>=3.2.2
+# tkinterdnd2>=0.3.0
