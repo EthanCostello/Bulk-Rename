@@ -3,10 +3,12 @@
 # Required:
 #   tkinter — included with standard Python installations (no pip install needed)
 #
-# Optional — install to enable additional features:
-#   pip install ttkthemes    # Enhanced dark/light theme support
-#   pip install tkinterdnd2  # Drag-and-drop folder support
+# Required for the modern GUI:
+customtkinter>=5.2.0
 #
-# Uncomment the lines below to install optional packages via pip install -r requirements.txt:
-# ttkthemes>=3.2.2
-# tkinterdnd2>=0.3.0
+# Optional — install to enable additional features:
+#   pip install tkinterdnd2  # Drag-and-drop folder support (note: not compatible with customtkinter base class by default)
+#
+# Development / build:
+#   pip install pytest        # Run tests
+#   pip install pyinstaller   # Build standalone executable

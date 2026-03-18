@@ -2,18 +2,19 @@
 import json
 import sys
 import os
+from unittest.mock import MagicMock, patch
+
+# Mock all GUI modules before importing so tests run headlessly
+for _mod in [
+    'tkinter', 'tkinter.ttk', 'tkinter.filedialog', 'tkinter.messagebox',
+    'customtkinter',
+]:
+    sys.modules.setdefault(_mod, MagicMock())
 
 # Allow importing from parent directory without installing the package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import pytest
-from unittest.mock import patch, MagicMock
-
-# Patch tkinter before importing the module so tests run headlessly
-sys.modules.setdefault('tkinter', MagicMock())
-sys.modules.setdefault('tkinter.ttk', MagicMock())
-sys.modules.setdefault('tkinter.filedialog', MagicMock())
-sys.modules.setdefault('tkinter.messagebox', MagicMock())
 
 from batch_rename_tv import (
     load_history,
@@ -84,28 +85,22 @@ class TestValidateInputs:
         assert validate_inputs("Show", "2024", "1", "1") is None
 
     def test_season_zero(self):
-        err = validate_inputs("Show", "2008", "0", "1")
-        assert err is not None
+        assert validate_inputs("Show", "2008", "0", "1") is not None
 
     def test_season_negative(self):
-        err = validate_inputs("Show", "2008", "-1", "1")
-        assert err is not None
+        assert validate_inputs("Show", "2008", "-1", "1") is not None
 
     def test_season_not_integer(self):
-        err = validate_inputs("Show", "2008", "abc", "1")
-        assert err is not None
+        assert validate_inputs("Show", "2008", "abc", "1") is not None
 
     def test_episode_zero(self):
-        err = validate_inputs("Show", "2008", "1", "0")
-        assert err is not None
+        assert validate_inputs("Show", "2008", "1", "0") is not None
 
     def test_episode_negative(self):
-        err = validate_inputs("Show", "2008", "1", "-5")
-        assert err is not None
+        assert validate_inputs("Show", "2008", "1", "-5") is not None
 
     def test_episode_not_integer(self):
-        err = validate_inputs("Show", "2008", "1", "abc")
-        assert err is not None
+        assert validate_inputs("Show", "2008", "1", "abc") is not None
 
     def test_large_valid_season_and_episode(self):
         assert validate_inputs("Show", "2008", "99", "99") is None
@@ -146,9 +141,6 @@ class TestBuildRenamePlan:
         assert plan == []
 
     def test_raises_on_duplicate_targets_via_patched_suffix(self):
-        # Simulate a collision by making Path.suffix always return '' so all
-        # files share the same extension AND the same episode number would be
-        # used — achieved by monkeypatching Path inside the module.
         import batch_rename_tv as m
 
         class _FakePath:
@@ -156,20 +148,12 @@ class TestBuildRenamePlan:
                 self._name = name
             @property
             def suffix(self):
-                return ''  # Every file has no extension → same target name pattern
+                return ''
 
         original_path = m.Path
         m.Path = _FakePath
         try:
-            # With no extension, S01E01 and S01E02 still differ → no collision.
-            # Force a real collision by using only one file and calling twice
-            # (not possible via normal flow). Instead, verify that the guard
-            # catches a hand-crafted collision by calling the function with a
-            # mocked incrementing counter that stalls at the same episode.
-            # Since sequential numbering never collides, we verify the guard
-            # directly by injecting duplicate entries.
             with pytest.raises(ValueError, match="Duplicate"):
-                # Manually build what the function sees: all targets identical
                 targets: set = set()
                 for _ in range(2):
                     new = "Show (2020) - S01E01"
@@ -183,7 +167,7 @@ class TestBuildRenamePlan:
         files = [f"ep{i}.mp4" for i in range(10)]
         plan = build_rename_plan(files, "Show", "2020", 1, 1)
         targets = [new for _, new in plan]
-        assert len(targets) == len(set(targets)), "All targets must be unique"
+        assert len(targets) == len(set(targets))
 
 
 # ---------------------------------------------------------------------------
@@ -197,11 +181,11 @@ class TestMediaExts:
 
     def test_all_lowercase(self):
         for ext in MEDIA_EXTS:
-            assert ext == ext.lower(), f"Extension {ext!r} is not lowercase"
+            assert ext == ext.lower()
 
     def test_all_start_with_dot(self):
         for ext in MEDIA_EXTS:
-            assert ext.startswith('.'), f"Extension {ext!r} does not start with a dot"
+            assert ext.startswith('.')
 
 
 # ---------------------------------------------------------------------------
@@ -209,15 +193,12 @@ class TestMediaExts:
 # ---------------------------------------------------------------------------
 
 class TestMaxHistory:
-    def test_history_capped_at_max(self, tmp_path):
-        hist_file = tmp_path / 'history.json'
-        hist = {"title": [], "year": [], "season": [], "episode": []}
-        with patch('batch_rename_tv.HISTORY_FILE', hist_file):
-            for i in range(MAX_HISTORY + 5):
-                v = str(i)
-                lst = hist['title']
-                if v not in lst:
-                    lst.append(v)
-                    if len(lst) > MAX_HISTORY:
-                        lst.pop(0)
-            assert len(hist['title']) == MAX_HISTORY
+    def test_history_capped_at_max(self):
+        lst = []
+        for i in range(MAX_HISTORY + 5):
+            v = str(i)
+            if v not in lst:
+                lst.append(v)
+                if len(lst) > MAX_HISTORY:
+                    lst.pop(0)
+        assert len(lst) == MAX_HISTORY

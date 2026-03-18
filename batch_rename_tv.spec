@@ -1,5 +1,5 @@
 # PyInstaller spec file for Batch File Renamer
-# Run with: pyinstaller batch_rename_tv.spec
+# Run with: pyinstaller batch_rename_tv.spec --clean
 
 import sys
 from pathlib import Path
@@ -12,14 +12,14 @@ a = Analysis(
     binaries=[],
     datas=[],
     hiddenimports=[
-        # tkinter submodules that PyInstaller may miss
+        # tkinter submodules PyInstaller may miss
         'tkinter',
         'tkinter.ttk',
         'tkinter.filedialog',
         'tkinter.messagebox',
-        # Optional packages — safely ignored if not installed
-        'ttkthemes',
-        'tkinterdnd2',
+        # customtkinter bundles its own assets; the hook handles most of this,
+        # but list the package explicitly as a safety net
+        'customtkinter',
     ],
     hookspath=[],
     hooksconfig={},
@@ -50,6 +50,6 @@ exe = EXE(
     onefile=True,
     # Hide the console window on Windows (GUI app)
     console=False,
-    # Windows-only: set app icon if present
+    # Windows-only: set app icon if icon.ico is present in the project root
     icon='icon.ico' if sys.platform == 'win32' and Path('icon.ico').exists() else None,
 )
