@@ -1,0 +1,35 @@
+# PyInstaller build output
+dist/
+build/
+*.spec.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# User data — history file should not be committed
+.batch_renamer_history.json
+
+# OS
+.DS_Store
+Thumbs.db
