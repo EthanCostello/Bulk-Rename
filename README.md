@@ -82,6 +82,35 @@ python batch_rename_tv.py
 * **History File:** `~/.batch_renamer_history.json` stores the last 20 inputs per field (excluded from version control via `.gitignore`).
 * **History Limit:** Adjust `MAX_HISTORY` in `batch_rename_tv.py` to change how many entries are remembered.
 
+## Building a Standalone Executable
+
+You can package the app as a single executable using [PyInstaller](https://pyinstaller.org/).
+The output format depends on the OS you build on:
+
+| Build OS | Output |
+|---|---|
+| Windows | `dist\BatchRenamer.exe` |
+| macOS | `dist/BatchRenamer` |
+| Linux | `dist/BatchRenamer` |
+
+**Steps:**
+
+1. Install PyInstaller:
+   ```bash
+   pip install pyinstaller
+   ```
+
+2. Build:
+   ```bash
+   pyinstaller batch_rename_tv.spec --clean
+   ```
+
+3. The executable is at `dist/BatchRenamer` (or `dist\BatchRenamer.exe` on Windows).
+   Copy it anywhere — no Python installation required on the target machine.
+
+> **Optional icon:** Place a `icon.ico` file in the project root before building on Windows
+> and the exe will use it as its icon.
+
 ## Running Tests
 
 ```bash
